@@ -1,0 +1,4 @@
+# Sembunyikan fail konfigurasi sensitif
+config.js
+env.json
+.env
