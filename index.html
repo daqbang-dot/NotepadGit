@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <script src="config.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevLog Memo - AzlanMymo</title>
@@ -16,39 +15,38 @@
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="p-4 font-sans">
+<body class="p-4 font-sans pb-20">
 
     <header class="mb-6 text-center">
         <h1 class="text-2xl font-bold text-blue-400 uppercase tracking-wider">DevLog Notebook</h1>
-        <p class="text-xs text-slate-400">Simpan langkah kerja & log pembangunan</p>
+        <p class="text-[10px] text-slate-400 italic">Offline Storage • Local Search • Code Ready</p>
     </header>
 
     <div class="glass-card p-4 rounded-xl mb-6">
-        <input type="text" id="noteTitle" placeholder="Tajuk Projek / Langkah (Contoh: Setup Firebase)" 
+        <input type="text" id="noteTitle" placeholder="Tajuk Projek / Langkah..." 
             class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
         
         <textarea id="noteContent" rows="5" placeholder="Tulis langkah kerja atau snippet kod di sini..." 
             class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs"></textarea>
         
         <div class="flex flex-wrap gap-2">
-            <button onclick="saveNote()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition text-sm text-center">
+            <button onclick="saveNote()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition text-sm">
                 Simpan Nota
             </button>
-            <button onclick="exportToJSON()" class="bg-slate-700 hover:bg-slate-600 px-4 rounded-lg text-xs transition">Export</button>
-            <button onclick="pushToGitHub()" class="bg-green-600 hover:bg-green-500 px-4 py-3 rounded-lg text-xs text-white font-bold transition">Sync GitHub</button>
+            <button onclick="exportToJSON()" class="bg-slate-700 hover:bg-slate-600 px-4 rounded-lg text-xs transition">Backup JSON</button>
         </div>
     </div>
 
-    <div class="mb-4">
-        <input type="text" id="searchInput" onkeyup="searchNotes()" placeholder="Cari tajuk atau kandungan nota..." 
+    <div class="mb-6">
+        <input type="text" id="searchInput" onkeyup="searchNotes()" placeholder="Cari tajuk atau isi nota..." 
             class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-blue-300">
     </div>
 
-    <div id="notesContainer" class="space-y-4 pb-10">
+    <div id="notesContainer" class="space-y-4">
         </div>
 
     <script>
-        // 1. Simpan Nota ke LocalStorage
+        // 1. Simpan Nota (LocalStorage)
         function saveNote() {
             const title = document.getElementById('noteTitle').value;
             const content = document.getElementById('noteContent').value;
@@ -64,117 +62,78 @@
             renderNotes();
             document.getElementById('noteTitle').value = '';
             document.getElementById('noteContent').value = '';
-            document.getElementById('searchInput').value = ''; // Reset carian selepas simpan
         }
 
-        // 2. Papar Nota ke Skrin (Render asal)
+        // 2. Papar Nota & Fungsi Carian
         function renderNotes() {
-            const container = document.getElementById('notesContainer');
             const notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
-            
-            if(notes.length === 0) {
-                container.innerHTML = `<p class="text-center text-slate-500 text-sm italic">Tiada nota disimpan.</p>`;
-                return;
-            }
             displayNotes(notes);
         }
 
-        // 3. Fungsi Carian
         function searchNotes() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const term = document.getElementById('searchInput').value.toLowerCase();
             const notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
-            
-            const filteredNotes = notes.filter(n => 
-                n.title.toLowerCase().includes(searchTerm) || 
-                n.content.toLowerCase().includes(searchTerm)
-            );
-
-            if(filteredNotes.length === 0) {
-                document.getElementById('notesContainer').innerHTML = 
-                    `<p class="text-center text-slate-500 text-sm italic py-10">Tiada nota sepadan dengan "${searchTerm}".</p>`;
-                return;
-            }
-            displayNotes(filteredNotes);
+            const filtered = notes.filter(n => n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term));
+            displayNotes(filtered);
         }
 
-        // Fungsi Helper untuk paparan nota
         function displayNotes(notesArray) {
             const container = document.getElementById('notesContainer');
+            if(notesArray.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-500 text-sm italic py-10">Tiada nota ditemui.</p>`;
+                return;
+            }
+
             container.innerHTML = notesArray.map(n => `
-                <div class="glass-card p-4 rounded-xl relative animate-fade-in text-sm">
-                    <h3 class="font-bold text-blue-300 mb-1 pr-10">${n.title}</h3>
-                    <p class="text-[10px] text-slate-500 mb-3 italic">${n.date}</p>
-                    <pre class="bg-black/40 p-3 rounded text-[11px] overflow-x-auto font-mono text-green-400 border border-white/5">${n.content}</pre>
-                    <button onclick="deleteNote(${n.id})" class="absolute top-4 right-4 text-red-500/70 hover:text-red-400 text-[10px] border border-red-500/20 px-2 py-1 rounded">Padam</button>
+                <div class="glass-card p-4 rounded-xl relative animate-fade-in text-sm border-l-4 border-blue-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h3 class="font-bold text-blue-300 pr-10">${n.title}</h3>
+                            <p class="text-[9px] text-slate-500 italic">${n.date}</p>
+                        </div>
+                        <button onclick="deleteNote(${n.id})" class="text-red-500/50 hover:text-red-400 text-[10px]">Padam</button>
+                    </div>
+                    <div class="relative group">
+                        <pre id="code-${n.id}" class="bg-black/40 p-3 rounded text-[11px] overflow-x-auto font-mono text-green-400 border border-white/5 whitespace-pre-wrap">${n.content}</pre>
+                        <button onclick="copyCode(${n.id})" class="absolute top-2 right-2 bg-slate-700/80 hover:bg-blue-600 text-[9px] px-2 py-1 rounded text-white transition">Copy</button>
+                    </div>
                 </div>
             `).join('');
         }
 
-        // 4. Padam Nota
+        // 3. Fungsi Copy (Penting untuk Developer Mobile)
+        function copyCode(id) {
+            const codeText = document.getElementById(`code-${id}`).innerText;
+            navigator.clipboard.writeText(codeText).then(() => {
+                const btn = event.target;
+                const originalText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.classList.add("bg-green-600");
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove("bg-green-600");
+                }, 1500);
+            });
+        }
+
+        // 4. Padam & Export
         function deleteNote(id) {
-            if(!confirm("Padam nota ini?")) return;
+            if(!confirm("Padam nota?")) return;
             let notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
             notes = notes.filter(n => n.id !== id);
             localStorage.setItem('devNotes', JSON.stringify(notes));
             renderNotes();
         }
 
-        // 5. Export Manual (JSON)
         function exportToJSON() {
             const notes = localStorage.getItem('devNotes');
-            if(!notes) return alert("Tiada data untuk di-export.");
+            if(!notes) return alert("Tiada data.");
             const blob = new Blob([notes], {type: "application/json"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'devlog_backup.json';
+            a.download = `DevLog_Backup_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
-        }
-
-        // 6. Fungsi Auto-Push ke GitHub
-        async function pushToGitHub() {
-            if (typeof GITHUB_CONFIG === 'undefined') {
-                return alert("Fail config.js tidak ditemui!");
-            }
-
-            const { TOKEN, REPO_OWNER, REPO_NAME, FILE_PATH } = GITHUB_CONFIG;
-            const notes = localStorage.getItem('devNotes') || '[]';
-            const message = "Update DevLog: " + new Date().toLocaleString();
-            
-            let sha = "";
-            try {
-                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-                    headers: { 'Authorization': `token ${TOKEN}` }
-                });
-                if(res.ok) {
-                    const data = await res.json();
-                    sha = data.sha;
-                }
-            } catch (e) { console.log("Menghantar fail baru..."); }
-
-            try {
-                const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${TOKEN}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        content: btoa(unescape(encodeURIComponent(notes))),
-                        sha: sha || null
-                    })
-                });
-
-                if (response.ok) {
-                    alert("✅ Berjaya Sync ke GitHub!");
-                } else {
-                    const errorData = await response.json();
-                    alert("❌ Gagal: " + errorData.message);
-                }
-            } catch (err) {
-                alert("❌ Ralat sambungan API.");
-            }
         }
 
         renderNotes();
