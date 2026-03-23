@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevLog Memo - AzlanMymo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="p-4 font-sans">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-2xl font-bold text-blue-400">DevLog Notebook</h1>
+        <p class="text-xs text-slate-400">Simpan langkah kerja & log pembangunan</p>
+    </header>
+
+    <div class="glass-card p-4 rounded-xl mb-6">
+        <input type="text" id="noteTitle" placeholder="Tajuk Projek / Langkah (Contoh: Setup Firebase)" 
+            class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none">
+        
+        <textarea id="noteContent" rows="4" placeholder="Tulis langkah kerja atau snippet kod di sini..." 
+            class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"></textarea>
+        
+        <div class="flex gap-2">
+            <button onclick="saveNote()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition">
+                Simpan Nota
+            </button>
+            <button onclick="exportToJSON()" class="bg-slate-700 px-4 rounded-lg text-xs">Export</button>
+        </div>
+    </div>
+
+    <div id="notesContainer" class="space-y-4">
+        </div>
+
+    <script>
+        // Logik Simpan Nota ke LocalStorage
+        function saveNote() {
+            const title = document.getElementById('noteTitle').value;
+            const content = document.getElementById('noteContent').value;
+            const date = new Date().toLocaleString('ms-MY');
+
+            if(!title || !content) return alert("Sila isi tajuk dan kandungan!");
+
+            const note = { title, content, date, id: Date.now() };
+            let notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
+            notes.unshift(note);
+            localStorage.setItem('devNotes', JSON.stringify(notes));
+
+            renderNotes();
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+        }
+
+        function renderNotes() {
+            const container = document.getElementById('notesContainer');
+            const notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
+            container.innerHTML = notes.map(n => `
+                <div class="glass-card p-4 rounded-xl relative">
+                    <h3 class="font-bold text-blue-300 mb-1">${n.title}</h3>
+                    <p class="text-[10px] text-slate-500 mb-3">${n.date}</p>
+                    <pre class="bg-black/40 p-3 rounded text-xs overflow-x-auto font-mono text-green-400">${n.content}</pre>
+                    <button onclick="deleteNote(${n.id})" class="absolute top-4 right-4 text-red-500 text-xs">Padam</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteNote(id) {
+            let notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
+            notes = notes.filter(n => n.id !== id);
+            localStorage.setItem('devNotes', JSON.stringify(notes));
+            renderNotes();
+        }
+
+        function exportToJSON() {
+            const notes = localStorage.getItem('devNotes');
+            const blob = new Blob([notes], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'devlog_backup.json';
+            a.click();
+        }
+
+        renderNotes();
+    </script>
+</body>
+</html>
