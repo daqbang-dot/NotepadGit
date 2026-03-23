@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-<script src="config.js"></script>
+    <script src="config.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevLog Memo - AzlanMymo</title>
@@ -9,35 +9,40 @@
     <style>
         body { background-color: #0f172a; color: #e2e8f0; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        /* Custom scrollbar untuk nampak lebih kemas pada mobile */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body class="p-4 font-sans">
 
     <header class="mb-6 text-center">
-        <h1 class="text-2xl font-bold text-blue-400">DevLog Notebook</h1>
+        <h1 class="text-2xl font-bold text-blue-400 uppercase tracking-wider">DevLog Notebook</h1>
         <p class="text-xs text-slate-400">Simpan langkah kerja & log pembangunan</p>
     </header>
 
     <div class="glass-card p-4 rounded-xl mb-6">
         <input type="text" id="noteTitle" placeholder="Tajuk Projek / Langkah (Contoh: Setup Firebase)" 
-            class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none">
+            class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
         
-        <textarea id="noteContent" rows="4" placeholder="Tulis langkah kerja atau snippet kod di sini..." 
-            class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm"></textarea>
+        <textarea id="noteContent" rows="5" placeholder="Tulis langkah kerja atau snippet kod di sini..." 
+            class="w-full bg-slate-800 border-none rounded-lg p-3 mb-3 focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs"></textarea>
         
-        <div class="flex gap-2">
-            <button onclick="saveNote()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition">
+        <div class="flex flex-wrap gap-2">
+            <button onclick="saveNote()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition text-sm">
                 Simpan Nota
             </button>
-            <button onclick="exportToJSON()" class="bg-slate-700 px-4 rounded-lg text-xs">Export</button>
+            <button onclick="exportToJSON()" class="bg-slate-700 hover:bg-slate-600 px-4 rounded-lg text-xs transition">Export</button>
+            <button onclick="pushToGitHub()" class="bg-green-600 hover:bg-green-500 px-4 py-3 rounded-lg text-xs text-white font-bold transition">Sync GitHub</button>
         </div>
     </div>
 
-    <div id="notesContainer" class="space-y-4">
+    <div id="notesContainer" class="space-y-4 pb-10">
         </div>
 
     <script>
-        // Logik Simpan Nota ke LocalStorage
+        // 1. Simpan Nota ke LocalStorage
         function saveNote() {
             const title = document.getElementById('noteTitle').value;
             const content = document.getElementById('noteContent').value;
@@ -55,28 +60,39 @@
             document.getElementById('noteContent').value = '';
         }
 
+        // 2. Papar Nota ke Skrin
         function renderNotes() {
             const container = document.getElementById('notesContainer');
             const notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
+            
+            if(notes.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-500 text-sm italic">Tiada nota disimpan.</p>`;
+                return;
+            }
+
             container.innerHTML = notes.map(n => `
-                <div class="glass-card p-4 rounded-xl relative">
-                    <h3 class="font-bold text-blue-300 mb-1">${n.title}</h3>
-                    <p class="text-[10px] text-slate-500 mb-3">${n.date}</p>
-                    <pre class="bg-black/40 p-3 rounded text-xs overflow-x-auto font-mono text-green-400">${n.content}</pre>
-                    <button onclick="deleteNote(${n.id})" class="absolute top-4 right-4 text-red-500 text-xs">Padam</button>
+                <div class="glass-card p-4 rounded-xl relative animate-fade-in text-sm">
+                    <h3 class="font-bold text-blue-300 mb-1 pr-10">${n.title}</h3>
+                    <p class="text-[10px] text-slate-500 mb-3 italic">${n.date}</p>
+                    <pre class="bg-black/40 p-3 rounded text-[11px] overflow-x-auto font-mono text-green-400 border border-white/5">${n.content}</pre>
+                    <button onclick="deleteNote(${n.id})" class="absolute top-4 right-4 text-red-500/70 hover:text-red-400 text-[10px] border border-red-500/20 px-2 py-1 rounded">Padam</button>
                 </div>
             `).join('');
         }
 
+        // 3. Padam Nota
         function deleteNote(id) {
+            if(!confirm("Padam nota ini?")) return;
             let notes = JSON.parse(localStorage.getItem('devNotes') || '[]');
             notes = notes.filter(n => n.id !== id);
             localStorage.setItem('devNotes', JSON.stringify(notes));
             renderNotes();
         }
 
+        // 4. Export Manual (JSON)
         function exportToJSON() {
             const notes = localStorage.getItem('devNotes');
+            if(!notes) return alert("Tiada data untuk di-export.");
             const blob = new Blob([notes], {type: "application/json"});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -85,6 +101,59 @@
             a.click();
         }
 
+        // 5. Fungsi Auto-Push ke GitHub (Gunakan maklumat dari config.js)
+        async function pushToGitHub() {
+            if (typeof GITHUB_CONFIG === 'undefined') {
+                return alert("Fail config.js tidak ditemui!");
+            }
+
+            const GITHUB_TOKEN = GITHUB_CONFIG.TOKEN;
+            const REPO_OWNER = GITHUB_CONFIG.REPO_OWNER;
+            const REPO_NAME = GITHUB_CONFIG.REPO_NAME;
+            const FILE_PATH = GITHUB_CONFIG.FILE_PATH;
+
+            const notes = localStorage.getItem('devNotes') || '[]';
+            const message = "Update DevLog: " + new Date().toLocaleString();
+            
+            // Dapatkan SHA fail lama (wajib untuk kemaskini fail di GitHub)
+            let sha = "";
+            try {
+                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    sha = data.sha;
+                }
+            } catch (e) { console.log("Menghantar fail baru..."); }
+
+            // Hantar ke GitHub API
+            try {
+                const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        content: btoa(unescape(encodeURIComponent(notes))),
+                        sha: sha || null
+                    })
+                });
+
+                if (response.ok) {
+                    alert("✅ Berjaya Sync ke GitHub!");
+                } else {
+                    const errorData = await response.json();
+                    alert("❌ Gagal: " + errorData.message);
+                }
+            } catch (err) {
+                alert("❌ Ralat sambungan. Sila semak internet anda.");
+            }
+        }
+
+        // Jalankan render semasa mula
         renderNotes();
     </script>
 </body>
